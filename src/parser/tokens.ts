@@ -5,9 +5,34 @@ export const Variable = createToken({
   pattern: /\d+/,
 });
 
+export const And = createToken({
+  name: "And",
+  pattern: /\^/,
+});
+
+export const Or = createToken({
+  name: "Or",
+  pattern: /v/,
+});
+
+export const Minus = createToken({
+  name: "Minus",
+  pattern: /-/,
+});
+
 export const Negation = createToken({
   name: "Negation",
-  pattern: /-/,
+  pattern: /¬/,
+});
+
+export const OpenParenthesis = createToken({
+  name: "OpenParenthesis",
+  pattern: /\(/,
+});
+
+export const CloseParenthesis = createToken({
+  name: "CloseParenthesis",
+  pattern: /\)/,
 });
 
 export const Whitespace = createToken({
@@ -31,5 +56,10 @@ export const tokens = [
   cnf,
   Variable,
   Negation,
+  And,
+  Or,
+  OpenParenthesis,
+  CloseParenthesis,
+  Minus,
   Whitespace,
 ];

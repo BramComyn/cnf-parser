@@ -9,7 +9,24 @@ import {
   ParsedProgram,
 } from "./parser/index.ts";
 
-const FILE = "examples/example.cnf";
+const CNF_FILE = "examples/example.cnf";
+const CNF_FORMULA = "examples/example.cnf.formula";
+const CNF_OUTPUT = "examples/example.cnf.output";
+
+const parseFormule = (formula: string): ParsedClauses => {
+  const lexing = lexer.tokenize(formula);
+  if (lexing.errors.length > 0) {
+    throw new Error("Lexing errors detected");
+  }
+
+  parser.input = lexing.tokens;
+  const cst = parser.conjunction();
+  if (parser.errors.length > 0) {
+    throw new Error("Parsing errors detected");
+  }
+
+  return visitor.visit(cst);
+}
 
 const parseHeader = (headerLine: string): ParsedHeader => {
   const lexing = lexer.tokenize(headerLine);
@@ -65,9 +82,45 @@ const formatProgram = (program: ParsedProgram): string => {
   return result;
 }
 
+const toProgram = (clauses: ParsedClauses): ParsedProgram => {
+  const variables = new Set<number>();
+
+  for (const clause of clauses) {
+    for (const variable of clause.variables) {
+      variables.add(variable.variable);
+    }
+  }
+
+  const header: ParsedHeader = {
+    variables: variables.size,
+    clauses: clauses.length,
+  };
+
+  const program: ParsedProgram = {
+    header: header,
+    clauses: clauses,
+  };
+
+  return program;
+}
+
+const writeProgram = async (program: ParsedProgram): Promise<void> => {
+  const header = `p cnf ${program.header.variables} ${program.header.clauses}\n`;
+  const clauses = program.clauses.map(clause => {
+    return clause.variables
+      .map(variable => {
+        return variable.negation ? `-${variable.variable}` : `${variable.variable}`;
+      })
+      .join(" ") + " 0";
+  }).join("\n");
+
+  const content = header + clauses + "\n";
+  await fs.promises.writeFile(CNF_OUTPUT, content);
+}
+
 const main = async (): Promise<ParsedProgram> => {
   console.log("Parsing CNF file...");
-  const lines = await fs.promises.readFile(FILE, "utf-8");
+  const lines = await fs.promises.readFile(CNF_FILE, "utf-8");
   const [headerLine, ...clauseLines] = 
     lines.split("\n").filter(line => line.trim() !== "");
 
@@ -87,8 +140,16 @@ const main = async (): Promise<ParsedProgram> => {
   };
 
   const formatted = formatProgram(program);
-  console.log("Formatted CNF:");
-  console.log(`\t${formatted}`);
+  console.log("Formatted program:");
+  console.log(formatted);
+
+  console.log("Parsing CNF formula...");
+  const formula = await fs.promises.readFile(CNF_FORMULA, "utf-8");
+
+  console.log("Parsing formula...");
+  const parsedFormula = parseFormule(formula);
+  writeProgram(toProgram(parsedFormula));
+
   return program;
 };
 

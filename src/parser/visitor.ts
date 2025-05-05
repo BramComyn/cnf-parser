@@ -1,5 +1,5 @@
 import { parser } from "./parser.ts";
-import { ParsedClause, ParsedHeader, ParsedVariable } from "./types.ts";
+import { ParsedClause, ParsedClauses, ParsedHeader, ParsedVariable } from "./types.ts";
 
 const BaseVisitor = parser.getBaseCstVisitorConstructor();
 
@@ -7,6 +7,16 @@ class Visitor extends BaseVisitor {
   constructor() {
     super();
     this.validateVisitor();
+  }
+
+  conjunction(ctx: any): ParsedClauses {
+    return ctx.disjunction.map((d: any) => this.visit(d));
+  }
+
+  disjunction(ctx: any): ParsedClause {
+    return {
+      variables: ctx.variable.map((v: any) => this.visit(v)),
+    };
   }
 
   header(ctx: any): ParsedHeader {
@@ -26,7 +36,7 @@ class Visitor extends BaseVisitor {
   }
 
   variable(ctx: any): ParsedVariable {
-    const negation = ctx.Negation ? true : false;
+    const negation = (ctx.Minus || ctx.Negation) ? true : false;
     const variable = parseInt(ctx.Variable[0].image, 10);
 
     return {
